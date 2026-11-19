@@ -3,6 +3,8 @@
 **Triagem de ações da B3 com uma estratégia de momentum validada em backtest.**
 Todo dia útil, depois do fechamento, um robô analisa 75 ações do Ibovespa, escolhe as 5 mais fortes e o app mostra o que fazer: o que comprar, o que vender e onde está o risco da sua carteira.
 
+**📱 Abrir o app:** [giovanssouzagt-lang.github.io/athena-moment](https://giovanssouzagt-lang.github.io/athena-moment/) (instalável no celular como aplicativo)
+
 <p align="center">
   <img src="docs/top5.png" alt="Top 5 do dia com preço, stop loss, força de 12 meses e gráfico de 6 meses" width="24%">
   <img src="docs/carteira.png" alt="Carteira com lucro, prejuízo e alertas explicativos" width="24%">
@@ -53,16 +55,21 @@ Este repositório é uma reconstrução dos scripts originais (`athena_final.py`
 GitHub Actions (18h30, dias úteis)        Supabase                         App (GitHub Pages, PWA)
 ┌───────────────────────────────┐   ┌──────────────────────────┐   ┌────────────────────────────┐
 │ 1. testes (pytest)            │   │ sinais (Top 5 por dia)   │   │ login por e-mail e senha   │
-│ 2. baixa preços (Yahoo)       │──▶│ precos (para o stop)     │◀──│ Início: simulador + alertas│
-│ 3. roda a estratégia (Python) │   │ aportes e caixa_cdi      │   │ Top 5 · Carteira · Colchão │
-│ 4. envia sinal e preços       │   │ (por usuário, com RLS)   │   │ Histórico · BOVA11         │
+│ 2. baixa preços (Yahoo)       │   │ precos (para o stop)     │   │ Início: simulador + alertas│
+│ 3. roda a estratégia (Python) │──▶│ ia_conteudo (notícias e  │◀──│ Top 5 · Carteira · Colchão │
+│ 4. envia sinal e preços       │   │   relatórios da IA)      │   │ Histórico · Relatórios     │
+│ 5. notícias com o Gemini (IA) │   │ aportes e caixa_cdi      │   │ Notícias nos cartões       │
+├───────────────────────────────┤   │ (por usuário, com RLS)   │   │ BOVA11                     │
+│ Sexta, 19h30: relatório       │   │                          │   │                            │
+│ semanal com o Gemini (IA)     │   │                          │   │                            │
 └───────────────────────────────┘   └──────────────────────────┘   └────────────────────────────┘
 ```
 
 - **Estratégia:** Python, pandas, yfinance (pasta `athena/`)
 - **Banco e login:** Supabase (PostgreSQL) com Row Level Security: cada usuário só enxerga as próprias anotações e o próprio colchão (`supabase/`)
+- **IA:** Gemini, no plano gratuito do Google AI Studio, chamado pela API REST (`athena/ia.py`)
 - **App:** React + Vite, PWA instalável no celular, gráficos em SVG sem bibliotecas (pasta `web/`)
-- **Automação:** GitHub Actions publica o app e gera o sinal diário (`.github/workflows/`)
+- **Automação:** GitHub Actions publica o app, gera o sinal diário e o relatório de sexta (`.github/workflows/`)
 
 ### O app
 O Athena não compra nada sozinho: ele é a "cola" do investidor. As compras e vendas são feitas na corretora e **anotadas** no app, que acompanha tudo.

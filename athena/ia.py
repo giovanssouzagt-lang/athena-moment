@@ -1,5 +1,5 @@
 """
-ATHENA INTELIGENTE: notícias e relatório semanal com o Claude.
+ATHENA INTELIGENTE: notícias e relatório semanal com o Gemini (plano gratuito).
 
 Regras que valem para tudo aqui:
 - A IA EXPLICA e INFORMA. Ela nunca muda o Top 5 nem recomenda comprar ou
@@ -21,8 +21,12 @@ import requests
 
 from .universo import get_nome
 
-MODELO = "claude-opus-5-5"
-BETA_FALLBACK = "server-side-fallback-2026-07-01"
+# Modelos do plano gratuito, em ordem de preferência. Se um travar, estourar o
+# limite ou sair do ar, o próximo assume. (Nov/2026: o "gemini-flash-latest"
+# ficava minutos sem responder no plano gratuito; o 2.5 Flash foi desativado.)
+# Para trocar sem mexer no código: GEMINI_MODELO="modelo-a,modelo-b".
+MODELOS = [m.strip() for m in (os.environ.get("GEMINI_MODELO") or "gemini-3.5-flash,gemini-3.5-flash-lite").split(",") if m.strip()]
+URL_GEMINI = "https://generativelanguage.googleapis.com/v1beta/models"
 
 
 # ---------------------------------------------------------------------------
@@ -69,34 +73,65 @@ def buscar_noticias(ticker, dias=3, maximo=6):
 
 
 # ---------------------------------------------------------------------------
-# Chamada ao Claude com resposta em JSON garantido
+# Chamada ao Gemini com resposta em JSON garantido (API REST, sem biblioteca extra)
 # ---------------------------------------------------------------------------
 
 def _cliente():
-    if not os.environ.get("ANTHROPIC_API_KEY"):
-        return None
-    import anthropic  # só importa quando há chave
-    return anthropic.Anthropic()
+    """Chave do Gemini (plano gratuito do Google AI Studio) ou None se não houver."""
+    return os.environ.get("GEMINI_API_KEY") or None
 
 
-def _perguntar_json(cliente, sistema, conteudo, esquema, esforco="medium"):
-    """Pede ao Claude uma resposta no formato do esquema. None se recusar."""
-    resposta = cliente.beta.messages.create(
-        model=MODELO,
-        max_tokens=16000,
-        betas=[BETA_FALLBACK],
-        fallbacks="default",  # se o modelo recusar, o servidor tenta um modelo reserva
-        system=sistema,
-        messages=[{"role": "user", "content": conteudo}],
-        output_config={"effort": esforco, "format": {"type": "json_schema", "schema": esquema}},
-    )
-    if resposta.stop_reason == "refusal":
-        print("  aviso: a IA recusou o pedido; seguindo sem ela.")
-        return None
-    texto = next(b.text for b in resposta.content if b.type == "text")
-    uso = resposta.usage
-    print(f"  IA: {uso.input_tokens} tokens de entrada, {uso.output_tokens} de saída")
-    return json.loads(texto)
+def _perguntar_json(chave, sistema, conteudo, esquema):
+    """Pede ao Gemini uma resposta no formato do esquema.
+
+    Devolve (resposta, modelo_usado), ou (None, None) se a IA bloquear.
+    Tenta os MODELOS em ordem; só desiste com erro se todos falharem.
+    """
+    ultimo_erro = None
+    for modelo in MODELOS:
+        try:
+            return _perguntar_ao_modelo(modelo, chave, sistema, conteudo, esquema)
+        except (requests.RequestException, RuntimeError, ValueError) as erro:
+            print(f"  aviso: {modelo} falhou ({str(erro)[:150]}); tentando o próximo modelo.")
+            ultimo_erro = erro
+    raise RuntimeError(f"nenhum modelo do Gemini respondeu: {ultimo_erro}")
+
+
+def _perguntar_ao_modelo(modelo, chave, sistema, conteudo, esquema):
+    url = f"{URL_GEMINI}/{modelo}:generateContent"
+    corpo = {
+        "systemInstruction": {"parts": [{"text": sistema}]},
+        "contents": [{"role": "user", "parts": [{"text": conteudo}]}],
+        "generationConfig": {
+            "temperature": 0.2,  # análise sóbria, sem criatividade
+            "maxOutputTokens": 8192,
+            "responseMimeType": "application/json",
+            "responseJsonSchema": esquema,
+        },
+    }
+    for tentativa in range(3):
+        resposta = requests.post(url, json=corpo, timeout=90,
+                                 headers={"x-goog-api-key": chave})  # chave no cabeçalho, nunca na URL
+        # 429 = limite do plano gratuito; 500/503 = Google sobrecarregado: espera e tenta de novo
+        if resposta.status_code not in (429, 500, 503) or tentativa == 2:
+            break
+        time.sleep(20 * (tentativa + 1))
+    if not resposta.ok:
+        raise RuntimeError(f"Gemini respondeu {resposta.status_code}: {resposta.text[:300]}")
+
+    dados = resposta.json()
+    candidatos = dados.get("candidates") or []
+    fim = candidatos[0].get("finishReason") if candidatos else None
+    if fim == "MAX_TOKENS":
+        raise RuntimeError("resposta cortada no meio (MAX_TOKENS)")  # JSON incompleto: tenta outro modelo
+    if not candidatos or fim not in ("STOP", None):
+        motivo = fim or dados.get("promptFeedback", {}).get("blockReason")
+        print(f"  aviso: a IA não respondeu ({motivo}); seguindo sem ela.")
+        return None, None
+    texto = "".join(p.get("text", "") for p in candidatos[0]["content"]["parts"] if not p.get("thought"))
+    uso = dados.get("usageMetadata", {})
+    print(f"  IA ({modelo}): {uso.get('promptTokenCount')} tokens de entrada, {uso.get('candidatesTokenCount')} de saída")
+    return json.loads(texto), modelo
 
 
 SISTEMA_NOTICIAS = """Você é o analista de notícias do Athena Moment, um app de triagem de ações da B3.
@@ -140,7 +175,7 @@ def analisar_noticias(tickers, data):
     """Busca e analisa as notícias. Devolve o conteúdo pronto para o app (ou None)."""
     cliente = _cliente()
     if cliente is None:
-        print("  (sem ANTHROPIC_API_KEY: análise de notícias desligada)")
+        print("  (sem GEMINI_API_KEY: análise de notícias desligada)")
         return None
 
     manchetes = {}
@@ -158,7 +193,7 @@ def analisar_noticias(tickers, data):
         blocos.append(f"<acao ticker=\"{t}\" nome=\"{_nome_para_busca(t + '.SA')}\">\n{linhas}\n</acao>")
     conteudo = f"Data do sinal: {data}\n<manchetes>\n" + "\n".join(blocos) + "\n</manchetes>"
 
-    analise = _perguntar_json(cliente, SISTEMA_NOTICIAS, conteudo, ESQUEMA_NOTICIAS)
+    analise, modelo = _perguntar_json(cliente, SISTEMA_NOTICIAS, conteudo, ESQUEMA_NOTICIAS)
     if analise is None:
         return None
 
@@ -171,7 +206,7 @@ def analisar_noticias(tickers, data):
         acoes[t] = {"resumo": a["resumo"], "risco": a["risco"], "motivo": a["motivo"], "fontes": fontes[:4]}
     for t in manchetes:
         acoes.setdefault(t, {"resumo": "Sem notícias relevantes nos últimos dias.", "risco": "nenhum", "motivo": "", "fontes": []})
-    return {"data": data, "modelo": MODELO, "acoes": acoes}
+    return {"data": data, "modelo": modelo, "acoes": acoes}
 
 
 # ---------------------------------------------------------------------------
@@ -221,7 +256,7 @@ def gerar_relatorio(sinais, noticias, semana):
     ]
     conteudo = (f"Semana: {semana}\n<sinais>\n{json.dumps(resumo_sinais, ensure_ascii=False)}\n</sinais>\n"
                 f"<analises_de_noticias>\n{json.dumps(noticias, ensure_ascii=False)}\n</analises_de_noticias>")
-    relatorio = _perguntar_json(cliente, SISTEMA_RELATORIO, conteudo, ESQUEMA_RELATORIO, esforco="high")
+    relatorio, modelo = _perguntar_json(cliente, SISTEMA_RELATORIO, conteudo, ESQUEMA_RELATORIO)
     if relatorio:
-        relatorio.update({"semana": semana, "modelo": MODELO, "gerado_em": datetime.now(timezone.utc).isoformat(timespec="seconds")})
+        relatorio.update({"semana": semana, "modelo": modelo, "gerado_em": datetime.now(timezone.utc).isoformat(timespec="seconds")})
     return relatorio

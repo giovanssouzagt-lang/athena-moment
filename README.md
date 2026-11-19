@@ -79,6 +79,14 @@ O Athena não compra nada sozinho: ele é a "cola" do investidor. As compras e v
 - **Top 5:** selo de "ponto de compra" ou "respiro", gráfico de 6 meses e comparativo com o BOVA11
 - **Histórico:** o Top 5 de cada dia e o ranking completo, incluindo as ações puladas por estarem esticadas
 
+### Athena Inteligente (IA gratuita)
+Um complemento com o **Gemini** (plano gratuito do Google AI Studio). A IA **explica e informa**: ela nunca muda o Top 5 nem recomenda comprar ou vender.
+
+- **Notícias do dia:** depois do sinal, o robô busca manchetes recentes (Google Notícias) das ações do Top 5 e das ações anotadas nas carteiras. A IA classifica o risco (nenhum, atenção ou alto) e o app mostra o resumo nos cartões e um alerta no Início quando há risco.
+- **Relatório semanal:** toda sexta às 19h30, um resumo da semana com as mudanças no Top 5, os destaques, os riscos e o que acompanhar. Ele aparece no Histórico.
+- **Segurança:** o texto das notícias é tratado como dado e nunca como instrução. A resposta segue um formato fixo (JSON), e tickers que não foram pedidos são descartados. Nenhum dado da carteira é enviado à IA, só tickers e manchetes públicas.
+- **Se a IA falhar** (sem chave, limite do plano gratuito ou instabilidade), o sinal do dia já foi salvo e o robô termina normalmente.
+
 ## Quando os dados atualizam
 
 O Athena usa o **preço de fechamento** de cada pregão, não cotações em tempo real, porque a estratégia foi testada assim e preços do meio do dia gerariam alarmes falsos de stop. O robô roda **uma vez por dia útil, às 18h30**: o sinal de um dia serve para operar no pregão seguinte, e o app não muda durante o pregão.
@@ -101,7 +109,7 @@ npm install
 npm run dev
 ```
 
-Para usar com banco: crie um projeto no Supabase, rode `supabase/schema.sql` e depois `supabase/002_v26.sql` no SQL Editor e crie `web/.env.local` com `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY`. O robô usa `SUPABASE_URL` e `SUPABASE_SERVICE_KEY` (num `.env` na raiz, ou nos *Secrets* do GitHub). Nenhuma chave secreta fica no código.
+Para usar com banco: crie um projeto no Supabase, rode `supabase/schema.sql`, `supabase/002_v26.sql` e `supabase/003_ia.sql` (nessa ordem) no SQL Editor e crie `web/.env.local` com `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY`. O robô usa `SUPABASE_URL`, `SUPABASE_SERVICE_KEY` e, para a Athena Inteligente, `GEMINI_API_KEY` (chave gratuita em [aistudio.google.com](https://aistudio.google.com)), num `.env` na raiz ou nos *Secrets* do GitHub. Opcional: `GEMINI_MODELO` troca os modelos, separados por vírgula (padrão: `gemini-3.5-flash,gemini-3.5-flash-lite`; o segundo assume se o primeiro falhar). Nenhuma chave secreta fica no código.
 
 ## Autoria
 

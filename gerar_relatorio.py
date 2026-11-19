@@ -1,7 +1,7 @@
 """
 RELATÓRIO SEMANAL DO ATHENA
 ===========================
-Junta os sinais e as análises de notícias dos últimos 7 dias e pede ao Claude
+Junta os sinais e as análises de notícias dos últimos 7 dias e pede ao Gemini
 um resumo da semana. Roda às sextas, depois do robô diário (ou à mão).
 
 Rode com:  python gerar_relatorio.py

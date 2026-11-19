@@ -25,7 +25,9 @@ alter table public.aportes drop constraint if exists aportes_tipo_check;
 alter table public.aportes add constraint aportes_tipo_check check (tipo in ('compra', 'venda'));
 
 -- A visão da carteira passa a descontar as vendas
-create or replace view public.carteira with (security_invoker = true) as
+-- (é recriada do zero: o banco não deixa mudar as colunas de uma visão existente)
+drop view if exists public.carteira;
+create view public.carteira with (security_invoker = true) as
 select
   user_id,
   ticker,
@@ -33,9 +35,10 @@ select
   round(
     sum(case when tipo = 'compra' then quantidade * preco_unitario else 0 end)
     / nullif(sum(case when tipo = 'compra' then quantidade else 0 end), 0), 4
-  ) as preco_medio_compras
+  ) as preco_medio
 from public.aportes
 group by user_id, ticker;
+revoke all on public.carteira from anon;
 
 -- ---------- Segurança ----------
 alter table public.precos enable row level security;

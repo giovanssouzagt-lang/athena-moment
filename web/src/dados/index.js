@@ -14,5 +14,5 @@ export const {
   obterSinalAtual, listarHistorico, obterSinal,
   listarAportes, adicionarAporte, adicionarAportes, apagarAporte, apagarAportes,
   obterTopos, obterCaixa, salvarCaixa,
-  obterNoticias, listarRelatorios, perguntarAthena,
+  obterNoticias, listarRelatorios,
 } = fonte;

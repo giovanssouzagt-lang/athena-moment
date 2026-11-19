@@ -7,7 +7,6 @@ import { Carteira } from './telas/Carteira.jsx';
 import { Inicio } from './telas/Inicio.jsx';
 import { Colchao } from './telas/Colchao.jsx';
 import { Login } from './telas/Login.jsx';
-import { Chat } from './telas/Chat.jsx';
 
 const ABAS = [
   { id: 'inicio', nome: 'Início', Icone: IconeInicio },
@@ -70,8 +69,6 @@ export function App() {
           Ferramenta de triagem, não é recomendação de investimento. Resultados passados não garantem resultados futuros. A decisão final é sempre sua.
         </footer>
       </main>
-
-      {sinal && <Chat />}
 
       <nav className="menu-inferior" aria-label="Seções">
         {ABAS.map(({ id, nome, Icone }) => (

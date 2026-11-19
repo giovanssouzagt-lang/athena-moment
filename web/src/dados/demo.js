@@ -69,10 +69,7 @@ export async function salvarCaixa({ valor, taxaAnual }) {
   gravar(CHAVE_CAIXA, { valor, taxaAnual, atualizadoEm: new Date().toISOString() });
 }
 
-// ---------- Athena Inteligente (indisponível na demonstração) ----------
+// ---------- Athena Inteligente (sem conteúdo na demonstração) ----------
 
 export const obterNoticias = async () => null;
 export const listarRelatorios = async () => [];
-export async function perguntarAthena() {
-  throw new Error('O Athena Explica precisa de uma conta conectada: no modo demonstração ele fica desligado.');
-}

@@ -130,13 +130,3 @@ export async function listarRelatorios() {
   return linhas.map((l) => ({ data: l.data, ...l.conteudo }));
 }
 
-export async function perguntarAthena(pergunta, historico) {
-  const { data, error } = await db.functions.invoke('athena-explica', { body: { pergunta, historico } });
-  if (error) {
-    // a função devolve { erro } com status de erro; tenta ler a mensagem amigável
-    let msg = 'O Athena Explica está indisponível agora.';
-    try { msg = (await error.context.json()).erro || msg; } catch { /* mantém a mensagem padrão */ }
-    throw new Error(msg);
-  }
-  return data;
-}

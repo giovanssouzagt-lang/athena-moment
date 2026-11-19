@@ -18,8 +18,9 @@ from athena.estrategia import calcular_momentum, selecionar_top
 
 
 def baixar_como_original(tickers, dias=600):
-    fim = datetime.today()
-    inicio = (fim - pd.Timedelta(days=dias)).strftime("%Y-%m-%d")
+    hoje = datetime.today()
+    inicio = (hoje - pd.Timedelta(days=dias)).strftime("%Y-%m-%d")
+    fim = (hoje + pd.Timedelta(days=1)).strftime("%Y-%m-%d")  # mesma regra de data do download novo
     dados = {}
     for t in tickers:
         df = yf.download(t, start=inicio, end=fim, auto_adjust=True, progress=False)

@@ -1,9 +1,10 @@
 /**
  * Modo demonstração: sem banco e sem login.
- * O sinal vem de public/demo/ultimo_sinal.json e a carteira fica salva no
- * próprio navegador (localStorage).
+ * O sinal vem de public/demo/ultimo_sinal.json; carteira e colchão ficam
+ * salvos no próprio navegador (localStorage).
  */
 const CHAVE = 'athena_aportes_demo';
+const CHAVE_CAIXA = 'athena_caixa_demo';
 let cacheSinal = null;
 
 async function carregarSinal() {
@@ -30,20 +31,40 @@ export async function listarHistorico() {
   return [{ data: s.data, tickers: s.top.map((a) => a.ticker) }];
 }
 
-function ler() {
+function ler(chave, padrao) {
   try {
-    return JSON.parse(localStorage.getItem(CHAVE)) || [];
+    return JSON.parse(localStorage.getItem(chave)) ?? padrao;
   } catch {
-    return [];
+    return padrao;
   }
 }
+const gravar = (chave, valor) => localStorage.setItem(chave, JSON.stringify(valor));
 
-export const listarAportes = async () => ler();
-export async function adicionarAporte(aporte) {
-  const lista = ler();
-  lista.push({ id: crypto.randomUUID(), ...aporte });
-  localStorage.setItem(CHAVE, JSON.stringify(lista));
+export const listarAportes = async () => ler(CHAVE, []);
+export async function adicionarAportes(lista) {
+  gravar(CHAVE, [...ler(CHAVE, []), ...lista.map((a) => ({ id: crypto.randomUUID(), tipo: 'compra', ...a }))]);
+}
+export const adicionarAporte = (aporte) => adicionarAportes([aporte]);
+export async function apagarAporte(id) {
+  gravar(CHAVE, ler(CHAVE, []).filter((a) => a.id !== id));
 }
 export async function apagarAportes() {
   localStorage.removeItem(CHAVE);
+}
+
+/** Na demonstração só há o gráfico de 6 meses das ações do Top 5. */
+export async function obterTopos(inicios) {
+  const s = await carregarSinal();
+  const topos = {};
+  for (const [ticker, desde] of Object.entries(inicios)) {
+    const serie = s.top.find((a) => a.ticker === ticker)?.serie ?? [];
+    const valores = serie.filter((p) => p.d >= desde).map((p) => p.c);
+    if (valores.length) topos[ticker] = Math.max(...valores);
+  }
+  return topos;
+}
+
+export const obterCaixa = async () => ler(CHAVE_CAIXA, null);
+export async function salvarCaixa({ valor, taxaAnual }) {
+  gravar(CHAVE_CAIXA, { valor, taxaAnual, atualizadoEm: new Date().toISOString() });
 }

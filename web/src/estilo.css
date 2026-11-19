@@ -219,3 +219,58 @@ h2, h3 { margin: 0; }
 
 /* A fonte serifada usa números "antigos" (1 parecido com ı): força o formato normal */
 .titulo-secao h2, .modal-topo h2, .marca-nome { font-variant-numeric: lining-nums; font-feature-settings: 'lnum' 1; }
+
+/* ---------- v26: simulador, colchão, posições ---------- */
+
+.painel { background: var(--cartao); border: 1px solid var(--borda); border-radius: var(--raio); padding: 16px; margin-bottom: 14px; }
+.pergunta { font-family: 'Cormorant Garamond', Georgia, serif; font-size: 28px; font-weight: 700; }
+.linha-simulador { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 12px; }
+.linha-simulador .prefixo { font-size: 20px; color: var(--ouro); font-weight: 700; }
+.linha-simulador input {
+  flex: 1; min-width: 140px; background: var(--preto); color: var(--texto); border: 1px solid var(--borda);
+  border-radius: 12px; padding: 13px; font: inherit; font-size: 20px; font-weight: 600;
+}
+.linha-simulador input:focus { outline: 2px solid var(--ouro); border-color: transparent; }
+.linha-simulador .botao-primario { flex: 1 1 100%; }
+.plano { margin-top: 16px; display: flex; flex-direction: column; gap: 12px; }
+.tabela td small { color: var(--ouro-claro); }
+.linha-apagada td { opacity: 0.45; }
+.linha-botoes-cheia { margin-top: 12px; }
+.linha-botoes-cheia > button { flex: 1; }
+.separador { height: 1px; background: var(--borda); margin: 28px 0 22px; }
+
+.selo-timing { margin: 12px 0 0; padding: 7px 10px; border-radius: 10px; font-size: 12px; }
+.selo-compra { background: rgba(52, 211, 153, 0.08); color: #a7f3d0; }
+.selo-respiro { background: rgba(251, 191, 36, 0.08); color: #fde68a; }
+
+.cartao-posicao { background: var(--cartao); border: 1px solid var(--borda); border-radius: var(--raio); padding: 14px; margin-bottom: 10px; }
+.cartao-posicao header { display: flex; justify-content: space-between; align-items: flex-start; }
+.cartao-posicao header h3 { font-size: 18px; }
+.cartao-posicao header p { margin: 2px 0 0; font-size: 12px; color: var(--suave); }
+.cartao-posicao header > strong { font-size: 18px; }
+.posicao-alerta { border-color: rgba(248, 113, 113, 0.6); background: rgba(248, 113, 113, 0.06); }
+.stop-linha { margin: 10px 0 0; font-size: 12px; color: var(--suave); }
+.stop-linha strong { color: var(--texto); }
+
+.lista-anotacoes { list-style: none; padding: 0; margin: 10px 0 0; font-size: 13px; }
+.lista-anotacoes li { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 10px 0; border-bottom: 1px solid var(--borda); }
+.lista-anotacoes li > span:first-child { font-weight: 700; width: 56px; }
+.botao-mini { margin-left: auto; background: none; border: 1px solid var(--borda); color: var(--suave); border-radius: 8px; padding: 4px 8px; font-size: 12px; }
+.botao-perigo-leve:disabled, .botao-secundario:disabled { opacity: 0.6; }
+
+.explicacao-colchao .divisao { display: flex; gap: 6px; margin: 12px 0 8px; font-size: 12px; color: var(--suave); }
+.explicacao-colchao .divisao > div { padding: 10px; border-radius: 10px; background: rgba(212, 175, 55, 0.1); border: 1px solid rgba(212, 175, 55, 0.3); }
+.explicacao-colchao .divisao span { display: block; font-size: 20px; font-weight: 700; color: var(--texto); }
+.explicacao-colchao .divisao .divisao-cdi { background: rgba(192, 192, 200, 0.1); border-color: rgba(192, 192, 200, 0.35); }
+
+.barra-colchao { position: relative; height: 14px; margin: 14px 0 6px; border-radius: 999px; background: rgba(192, 192, 200, 0.35); overflow: visible; }
+.barra-colchao > div { height: 100%; border-radius: 999px 0 0 999px; background: linear-gradient(90deg, var(--ouro), var(--ouro-claro)); }
+.barra-colchao > i { position: absolute; top: -4px; width: 2px; height: 22px; background: var(--texto); }
+.rotulo-slider { display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: var(--suave); }
+.rotulo-slider input { accent-color: var(--ouro); }
+
+/* Campos lado a lado precisam poder encolher, senão estouram a tela do celular */
+.formulario label { min-width: 0; }
+.formulario input, .formulario select { width: 100%; min-width: 0; }
+.linha-campos { align-items: flex-end; }
+.tabela td small.texto-suave { color: var(--suave); }

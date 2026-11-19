@@ -1,24 +1,26 @@
 import { useEffect, useState } from 'react';
 import { aoMudarSessao, modoDemo, obterSinalAtual, sair, sessaoAtual } from './dados/index.js';
-import { IconeCarteira, IconeComparativo, IconeHistorico, IconeSair, IconeTop } from './componentes/Icones.jsx';
+import { IconeCarteira, IconeColchao, IconeHistorico, IconeInicio, IconeSair, IconeTop } from './componentes/Icones.jsx';
 import { Top5 } from './telas/Top5.jsx';
 import { Historico, dataBR } from './telas/Historico.jsx';
 import { Carteira } from './telas/Carteira.jsx';
-import { Comparativo } from './telas/Comparativo.jsx';
+import { Inicio } from './telas/Inicio.jsx';
+import { Colchao } from './telas/Colchao.jsx';
 import { Login } from './telas/Login.jsx';
 
 const ABAS = [
+  { id: 'inicio', nome: 'Início', Icone: IconeInicio },
   { id: 'top', nome: 'Top 5', Icone: IconeTop },
-  { id: 'historico', nome: 'Histórico', Icone: IconeHistorico },
   { id: 'carteira', nome: 'Carteira', Icone: IconeCarteira },
-  { id: 'comparativo', nome: 'BOVA11', Icone: IconeComparativo },
+  { id: 'colchao', nome: 'Colchão', Icone: IconeColchao },
+  { id: 'historico', nome: 'Histórico', Icone: IconeHistorico },
 ];
 
 export function App() {
   const [usuario, setUsuario] = useState(undefined); // undefined = verificando
   const [sinal, setSinal] = useState(null);
   const [erro, setErro] = useState('');
-  const [aba, setAba] = useState('top');
+  const [aba, setAba] = useState('inicio');
 
   useEffect(() => {
     sessaoAtual().then(setUsuario);
@@ -55,10 +57,11 @@ export function App() {
       <main className="conteudo">
         {erro && <p className="aviso aviso-venda">{erro}</p>}
         {!sinal && !erro && <p className="carregando">Buscando o sinal de hoje…</p>}
+        {sinal && aba === 'inicio' && <Inicio sinal={sinal} />}
         {sinal && aba === 'top' && <Top5 sinal={sinal} />}
-        {sinal && aba === 'historico' && <Historico />}
         {sinal && aba === 'carteira' && <Carteira sinal={sinal} />}
-        {sinal && aba === 'comparativo' && <Comparativo sinal={sinal} />}
+        {sinal && aba === 'colchao' && <Colchao sinal={sinal} />}
+        {sinal && aba === 'historico' && <Historico />}
         <footer className="rodape">
           Ferramenta de triagem, não é recomendação de investimento. Resultados passados não garantem resultados futuros. A decisão final é sempre sua.
         </footer>

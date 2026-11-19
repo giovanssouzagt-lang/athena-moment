@@ -1,31 +1,35 @@
-import { useEffect, useMemo, useState } from 'react';
-import { adicionarAporte, apagarAportes, listarAportes } from '../dados/index.js';
-import { gerarAlertas, montarPosicoes, nomeSetor, pct, reais, resumir } from '../carteira.js';
+import { useState } from 'react';
+import { adicionarAporte, apagarAporte, apagarAportes } from '../dados/index.js';
+import { nomeSetor, pct, reais, resumir } from '../carteira.js';
+import { useCarteira } from '../useCarteira.js';
+import { dataBR } from './Historico.jsx';
 
-const LIMITE_SETOR = 0.4;
 const hoje = () => new Date().toISOString().slice(0, 10);
-const ICONE_ALERTA = { venda: '🔴', atencao: '⚠️', compra: '🟢', ok: '✅' };
 
-function FormularioCompra({ cotacoes, aoSalvar, aoCancelar }) {
-  const tickers = Object.keys(cotacoes).sort();
-  const [ticker, setTicker] = useState(tickers[0]);
-  const [quantidade, setQuantidade] = useState(100);
-  const [preco, setPreco] = useState(cotacoes[tickers[0]]?.preco ?? 0);
+function FormularioAnotacao({ tipo, sinal, posicoes, aoSalvar, aoCancelar }) {
+  const venda = tipo === 'venda';
+  const opcoes = venda ? posicoes.map((p) => p.ticker) : Object.keys(sinal.cotacoes).sort();
+  const maximo = (t) => posicoes.find((p) => p.ticker === t)?.quantidade ?? 0;
+  const [ticker, setTicker] = useState(opcoes[0]);
+  const [quantidade, setQuantidade] = useState(venda ? maximo(opcoes[0]) : 100);
+  const [preco, setPreco] = useState(sinal.cotacoes[opcoes[0]]?.preco ?? 0);
   const [data, setData] = useState(hoje());
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState('');
 
   function trocarAcao(t) {
     setTicker(t);
-    setPreco(cotacoes[t]?.preco ?? 0);
+    setPreco(sinal.cotacoes[t]?.preco ?? 0);
+    if (venda) setQuantidade(maximo(t));
   }
 
   async function salvar(e) {
     e.preventDefault();
     if (quantidade <= 0 || preco <= 0) return setErro('Quantidade e preço precisam ser maiores que zero.');
+    if (venda && quantidade > maximo(ticker)) return setErro(`Você só tem ${maximo(ticker)} ações de ${ticker} anotadas.`);
     setSalvando(true);
     try {
-      await adicionarAporte({ ticker, data, quantidade: Number(quantidade), precoUnitario: Number(preco) });
+      await adicionarAporte({ ticker, data, quantidade: Number(quantidade), precoUnitario: Number(preco), tipo });
       aoSalvar();
     } catch (err) {
       setErro(err.message);
@@ -35,124 +39,141 @@ function FormularioCompra({ cotacoes, aoSalvar, aoCancelar }) {
 
   return (
     <form className="formulario" onSubmit={salvar}>
+      <p className="nota">{venda
+        ? 'Anote aqui a venda que você fez no app da corretora, para o Athena tirar a ação da sua carteira.'
+        : 'Anote a compra que você fez (ou vai fazer) no app da corretora. O Athena acompanha lucro, stop e alertas.'}</p>
       <label>Ação
         <select value={ticker} onChange={(e) => trocarAcao(e.target.value)}>
-          {tickers.map((t) => <option key={t} value={t}>{t} · {cotacoes[t].nome}</option>)}
+          {opcoes.map((t) => <option key={t} value={t}>{t} · {sinal.cotacoes[t]?.nome ?? t}</option>)}
         </select>
       </label>
       <div className="linha-campos">
         <label>Quantidade
           <input type="number" min="1" step="1" inputMode="numeric" value={quantidade} onChange={(e) => setQuantidade(e.target.value)} />
         </label>
-        <label>Preço pago (R$)
+        <label>{venda ? 'Preço de venda (R$)' : 'Preço pago (R$)'}
           <input type="number" min="0.01" step="0.01" inputMode="decimal" value={preco} onChange={(e) => setPreco(e.target.value)} />
         </label>
       </div>
-      <label>Data da compra
+      <label>Data
         <input type="date" value={data} max={hoje()} onChange={(e) => setData(e.target.value)} />
       </label>
-      <p className="nota">Total desta compra: <strong>{reais(Number(quantidade) * Number(preco) || 0)}</strong></p>
+      <p className="nota">Total: <strong>{reais(Number(quantidade) * Number(preco) || 0)}</strong></p>
       {erro && <p className="aviso aviso-venda">{erro}</p>}
       <div className="linha-botoes">
-        <button type="button" className="botao-secundario" onClick={aoCancelar}>Cancelar compra</button>
-        <button type="submit" className="botao-primario" disabled={salvando}>{salvando ? 'Salvando…' : 'Salvar Compra'}</button>
+        <button type="button" className="botao-secundario" onClick={aoCancelar}>Cancelar</button>
+        <button type="submit" className={venda ? 'botao-perigo' : 'botao-primario'} disabled={salvando}>
+          {salvando ? 'Salvando…' : venda ? 'Salvar Venda' : 'Salvar Compra'}
+        </button>
       </div>
     </form>
   );
 }
 
 export function Carteira({ sinal }) {
-  const [aportes, setAportes] = useState(null);
-  const [formAberto, setFormAberto] = useState(false);
+  const c = useCarteira(sinal);
+  const [form, setForm] = useState(null); // 'compra' | 'venda' | null
+  const [verAnotacoes, setVerAnotacoes] = useState(false);
   const [confirmarApagar, setConfirmarApagar] = useState(false);
-  const [erro, setErro] = useState('');
+  const stopPct = sinal.parametros.stop_pct;
 
-  const recarregar = () => listarAportes().then(setAportes).catch((e) => setErro(e.message));
-  useEffect(() => { recarregar(); }, []);
+  if (c.erro) return <p className="aviso aviso-venda">Não foi possível carregar a carteira: {c.erro}</p>;
+  if (c.carregando) return <p className="carregando">Carregando carteira…</p>;
 
-  const posicoes = useMemo(() => (aportes ? montarPosicoes(aportes, sinal.cotacoes) : []), [aportes, sinal]);
-  const total = resumir(posicoes);
-  const alertas = gerarAlertas(posicoes, sinal.top, { stopPct: sinal.parametros.stop_pct, limiteSetor: LIMITE_SETOR });
-
-  async function apagar() {
-    await apagarAportes();
-    setConfirmarApagar(false);
-    recarregar();
-  }
-
-  if (erro) return <p className="aviso aviso-venda">Não foi possível carregar a carteira: {erro}</p>;
-  if (!aportes) return <p className="carregando">Carregando carteira…</p>;
+  const total = resumir(c.posicoes);
+  const fechar = () => { setForm(null); c.recarregar(); };
 
   return (
     <section>
       <div className="titulo-secao">
         <h2>Minha carteira</h2>
-        <p>Suas compras, o resultado de cada uma e o que fazer.</p>
+        <p>Suas anotações de compra e venda, o resultado de cada ação e o stop móvel.</p>
       </div>
 
-      {posicoes.length > 0 && (
+      {c.posicoes.length > 0 && (
         <div className="resumo">
-          <div><span className="rotulo">Valor atual</span><strong>{reais(total.valor)}</strong></div>
+          <div><span className="rotulo">Valor em ações</span><strong>{reais(total.valor)}</strong></div>
           <div><span className="rotulo">Investido</span><strong>{reais(total.investido)}</strong></div>
           <div>
-            <span className="rotulo">Lucro / prejuízo</span>
+            <span className="rotulo">Lucro em aberto</span>
             <strong className={total.lucro >= 0 ? 'texto-verde' : 'texto-vermelho'}>
               {reais(total.lucro)} ({total.lucro >= 0 ? '+' : ''}{pct(total.lucroPct)})
             </strong>
           </div>
+          {c.lucroRealizado !== 0 && (
+            <div>
+              <span className="rotulo">Lucro já realizado</span>
+              <strong className={c.lucroRealizado >= 0 ? 'texto-verde' : 'texto-vermelho'}>{reais(c.lucroRealizado)}</strong>
+            </div>
+          )}
         </div>
       )}
 
-      {formAberto ? (
-        <FormularioCompra cotacoes={sinal.cotacoes} aoCancelar={() => setFormAberto(false)}
-          aoSalvar={() => { setFormAberto(false); recarregar(); }} />
+      {form ? (
+        <FormularioAnotacao tipo={form} sinal={sinal} posicoes={c.posicoes} aoSalvar={fechar} aoCancelar={() => setForm(null)} />
       ) : (
-        <button className="botao-primario largo" onClick={() => setFormAberto(true)}>+ Adicionar Nova Compra</button>
-      )}
-
-      {alertas.length > 0 && (
-        <div className="alertas">
-          <h3 className="subtitulo">O que fazer hoje</h3>
-          {alertas.map((a, i) => (
-            <p key={i} className={`aviso aviso-${a.tipo}`}><span aria-hidden>{ICONE_ALERTA[a.tipo]}</span> {a.texto}</p>
-          ))}
+        <div className="linha-botoes linha-botoes-cheia">
+          <button className="botao-primario" onClick={() => setForm('compra')}>+ Anotar Compra</button>
+          {c.posicoes.length > 0 && <button className="botao-perigo-leve" onClick={() => setForm('venda')}>− Anotar Venda</button>}
         </div>
       )}
 
-      {posicoes.length === 0 ? (
-        <p className="vazio">Sua carteira está vazia. Registre sua primeira compra para acompanhar lucro, stop e alertas.</p>
+      {c.posicoes.length === 0 ? (
+        <p className="vazio">Nenhuma ação anotada. Use o simulador da tela Início ou anote uma compra acima.</p>
       ) : (
         <>
           <h3 className="subtitulo">Posições</h3>
-          <div className="tabela-rolagem">
-            <table className="tabela">
-              <thead>
-                <tr><th>Ação</th><th>Qtd</th><th>Preço médio</th><th>Preço atual</th><th>Lucro (R$)</th><th>Lucro (%)</th></tr>
-              </thead>
-              <tbody>
-                {posicoes.map((p) => {
-                  const cor = p.lucro >= 0 ? 'texto-verde' : 'texto-vermelho';
-                  return (
-                    <tr key={p.ticker}>
-                      <td><strong>{p.ticker}</strong><small>{nomeSetor(p.setor)}</small></td>
-                      <td>{p.quantidade}</td>
-                      <td>{reais(p.precoMedio)}</td>
-                      <td>{p.semCotacao ? '—' : reais(p.precoAtual)}</td>
-                      <td className={cor}>{reais(p.lucro)}</td>
-                      <td className={cor}>{p.lucro >= 0 ? '+' : ''}{pct(p.lucroPct)}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+          {c.posicoes.map((p) => {
+            const cor = p.lucro >= 0 ? 'texto-verde' : 'texto-vermelho';
+            const bateu = p.precoAtual <= p.stopMovel;
+            const folga = p.precoAtual / p.stopMovel - 1;
+            return (
+              <article key={p.ticker} className={`cartao-posicao ${bateu ? 'posicao-alerta' : ''}`}>
+                <header>
+                  <div>
+                    <h3>{p.ticker}</h3>
+                    <p>{p.quantidade} ações · {nomeSetor(p.setor)} · desde {dataBR(p.inicio)}</p>
+                  </div>
+                  <strong className={cor}>{p.lucro >= 0 ? '+' : ''}{pct(p.lucroPct)}</strong>
+                </header>
+                <div className="cartao-numeros">
+                  <div><span className="rotulo">Preço médio</span><strong>{reais(p.precoMedio)}</strong></div>
+                  <div><span className="rotulo">Preço atual</span><strong>{p.semCotacao ? '—' : reais(p.precoAtual)}</strong></div>
+                  <div><span className="rotulo">Lucro</span><strong className={cor}>{reais(p.lucro)}</strong></div>
+                </div>
+                <p className={`stop-linha ${bateu ? 'texto-vermelho' : ''}`}>
+                  🛑 Stop móvel ({pct(stopPct)} abaixo do topo de {reais(p.topo)}): <strong>{reais(p.stopMovel)}</strong>
+                  {bateu ? ' · BATEU, hora de vender' : ` · folga de ${pct(folga)}`}
+                </p>
+              </article>
+            );
+          })}
+        </>
+      )}
+
+      {c.aportes.length > 0 && (
+        <>
+          <button className="botao-link" onClick={() => setVerAnotacoes(!verAnotacoes)}>
+            {verAnotacoes ? 'Esconder minhas anotações' : `Ver minhas anotações (${c.aportes.length})`}
+          </button>
+          {verAnotacoes && (
+            <ul className="lista-anotacoes">
+              {[...c.aportes].reverse().map((a) => (
+                <li key={a.id}>
+                  <span className={a.tipo === 'venda' ? 'texto-vermelho' : 'texto-verde'}>{a.tipo === 'venda' ? 'Venda' : 'Compra'}</span>
+                  <span>{dataBR(a.data)} · {a.quantidade} {a.ticker} a {reais(a.precoUnitario)}</span>
+                  <button className="botao-mini" onClick={async () => { await apagarAporte(a.id); c.recarregar(); }}>Apagar anotação</button>
+                </li>
+              ))}
+            </ul>
+          )}
 
           {confirmarApagar ? (
             <div className="confirmar">
-              <p>Isso apaga <strong>todas</strong> as compras registradas. Não dá para desfazer.</p>
+              <p>Isso apaga <strong>todas</strong> as anotações de compra e venda. Não dá para desfazer.</p>
               <div className="linha-botoes">
-                <button className="botao-secundario" onClick={() => setConfirmarApagar(false)}>Manter minha carteira</button>
-                <button className="botao-perigo" onClick={apagar}>Sim, apagar tudo</button>
+                <button className="botao-secundario" onClick={() => setConfirmarApagar(false)}>Manter minhas anotações</button>
+                <button className="botao-perigo" onClick={async () => { await apagarAportes(); setConfirmarApagar(false); c.recarregar(); }}>Sim, apagar tudo</button>
               </div>
             </div>
           ) : (

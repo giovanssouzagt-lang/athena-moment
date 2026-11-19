@@ -15,3 +15,9 @@ export const IconeComparativo = () => (
 export const IconeSair = () => (
   <svg {...base} width="18" height="18"><path d="M15 4h4v16h-4M10 8l-4 4 4 4M6 12h10" /></svg>
 );
+export const IconeInicio = () => (
+  <svg {...base}><path d="M3 11l9-7 9 7" /><path d="M5 10v10h14V10" /><path d="M10 20v-6h4v6" /></svg>
+);
+export const IconeColchao = () => (
+  <svg {...base}><path d="M12 3l8 3v6c0 4.5-3.4 8-8 9-4.6-1-8-4.5-8-9V6z" /><path d="M9 12l2 2 4-4" /></svg>
+);

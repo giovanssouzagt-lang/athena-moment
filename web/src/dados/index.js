@@ -12,5 +12,6 @@ const fonte = modoDemo ? demo : supabase;
 export const {
   sessaoAtual, aoMudarSessao, entrar, cadastrar, sair,
   obterSinalAtual, listarHistorico, obterSinal,
-  listarAportes, adicionarAporte, apagarAportes,
+  listarAportes, adicionarAporte, adicionarAportes, apagarAporte, apagarAportes,
+  obterTopos, obterCaixa, salvarCaixa,
 } = fonte;

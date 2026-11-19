@@ -67,12 +67,12 @@ export function Historico() {
                         <td>{r.ticker}{r.escassez && <span className="ponto-ouro" title="Escassez" />}</td>
                         <td>{nomeSetor(r.setor)}</td>
                         <td className="texto-verde">+{pct(r.momentum)}</td>
-                        <td>{r.selecionada ? 'Top 5' : ''}</td>
+                        <td>{r.selecionada ? 'Top 5' : r.esticada ? 'Esticada' : ''}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
-                <p className="nota">Uma ação forte pode ficar de fora do Top 5 pelo limite de 2 por setor ou porque a mesma empresa já entrou. As de escassez (ponto dourado) têm prioridade.</p>
+                <p className="nota">Uma ação forte pode ficar de fora do Top 5 pelo limite de 2 por setor, porque a mesma empresa já entrou ou por estar "esticada" (mais de 8% acima da média de 50 dias). As de escassez (ponto dourado) têm prioridade.</p>
               </>
             )}
           </div>

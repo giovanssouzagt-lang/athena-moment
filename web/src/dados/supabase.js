@@ -64,18 +64,54 @@ export async function listarHistorico() {
   return checar(await db.from('sinais').select('data, tickers').order('data', { ascending: false }).limit(120));
 }
 
-// ---------- Carteira ----------
+// ---------- Carteira (anotações de compra e venda) ----------
 
 export async function listarAportes() {
-  const linhas = checar(await db.from('aportes').select('*').order('data', { ascending: true }));
-  return linhas.map((l) => ({ id: l.id, ticker: l.ticker, data: l.data, quantidade: l.quantidade, precoUnitario: Number(l.preco_unitario) }));
+  const linhas = checar(await db.from('aportes').select('*').order('data', { ascending: true }).order('criado_em', { ascending: true }));
+  return linhas.map((l) => ({
+    id: l.id, ticker: l.ticker, data: l.data, tipo: l.tipo,
+    quantidade: l.quantidade, precoUnitario: Number(l.preco_unitario),
+  }));
 }
 
-export async function adicionarAporte({ ticker, data, quantidade, precoUnitario }) {
-  checar(await db.from('aportes').insert({ ticker, data, quantidade, preco_unitario: precoUnitario }));
+export async function adicionarAportes(lista) {
+  checar(await db.from('aportes').insert(lista.map(({ ticker, data, quantidade, precoUnitario, tipo = 'compra' }) => (
+    { ticker, data, quantidade, preco_unitario: precoUnitario, tipo }
+  ))));
+}
+
+export const adicionarAporte = (aporte) => adicionarAportes([aporte]);
+
+export async function apagarAporte(id) {
+  checar(await db.from('aportes').delete().eq('id', id));
 }
 
 export async function apagarAportes() {
   const usuario = await sessaoAtual();
   checar(await db.from('aportes').delete().eq('user_id', usuario.id));
+}
+
+// ---------- Stop móvel: maior fechamento desde o início de cada posição ----------
+
+export async function obterTopos(inicios) {
+  const pares = await Promise.all(Object.entries(inicios).map(async ([ticker, desde]) => {
+    const linhas = checar(await db.from('precos').select('fechamento')
+      .eq('ticker', ticker).gte('data', desde).order('fechamento', { ascending: false }).limit(1));
+    return [ticker, linhas[0] ? Number(linhas[0].fechamento) : null];
+  }));
+  return Object.fromEntries(pares.filter(([, v]) => v != null));
+}
+
+// ---------- Colchão CDI ----------
+
+export async function obterCaixa() {
+  const linha = checar(await db.from('caixa_cdi').select('*').maybeSingle());
+  return linha ? { valor: Number(linha.valor), taxaAnual: Number(linha.taxa_anual), atualizadoEm: linha.atualizado_em } : null;
+}
+
+export async function salvarCaixa({ valor, taxaAnual }) {
+  const usuario = await sessaoAtual();
+  checar(await db.from('caixa_cdi').upsert({
+    user_id: usuario.id, valor, taxa_anual: taxaAnual, atualizado_em: new Date().toISOString(),
+  }));
 }

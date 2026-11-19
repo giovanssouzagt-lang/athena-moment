@@ -15,7 +15,7 @@ import yfinance as yf
 
 from athena import config
 from athena.dados import baixar_precos
-from athena.sinal import gerar_sinal
+from athena.sinal import gerar_sinal, linhas_de_precos
 from athena.universo import TICKERS, sem_sufixo
 
 SAIDA = Path(__file__).parent / "saida"
@@ -49,15 +49,19 @@ def main():
     print(f"\nTop {config.TOP_N} de {sinal['data']}:")
     for a in sinal["top"]:
         selo = " [escassez]" if a["escassez"] else ""
+        ponto = "ponto de compra" if a["ponto_de_compra"] else "respiro"
         print(f"  {a['posicao']}. {a['ticker']:<7} {a['setor']:<11} mom {a['momentum']:+.1%}  "
-              f"R$ {a['preco']:>8.2f}  stop R$ {a['stop']:>8.2f}{selo}")
+              f"R$ {a['preco']:>8.2f}  stop R$ {a['stop']:>8.2f}  {a['dist_sma']:+.1%} da SMA50 ({ponto}){selo}")
+    esticadas = [r["ticker"] for r in sinal["ranking"] if r["esticada"] and not r["selecionada"]]
+    if esticadas:
+        print(f"  Puladas por estarem esticadas (>8% da SMA50): {', '.join(esticadas)}")
     c = sinal["comparativo"]
     if c:
         print(f"\n12 meses: Top 5 {c['retorno_top5']:+.1%} | BOVA11 {c['retorno_bova']:+.1%}")
 
     try:
         from athena.banco import enviar_sinal  # noqa: E402
-        enviar_sinal(sinal)
+        enviar_sinal(sinal, linhas_de_precos(dados))
     except ImportError:
         pass
 

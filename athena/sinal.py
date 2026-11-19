@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 import pandas as pd
 
 from . import config
-from .estrategia import calcular_momentum, calcular_stop, selecionar_top
+from .estrategia import calcular_momentum, calcular_stop, distancia_sma, selecionar_top
 from .universo import get_nome, get_setor, is_escassez, sem_sufixo
 
 DIAS_GRAFICO = 126  # ~6 meses de pregões
@@ -47,7 +47,8 @@ def montar_comparativo(dados, top, benchmark_df, dias=DIAS_COMPARATIVO):
 def gerar_sinal(dados, benchmark_df=None, agora=None):
     agora = agora or datetime.now(timezone.utc)
     momentum = calcular_momentum(dados)
-    top = selecionar_top(momentum)
+    top = selecionar_top(momentum, dados)
+    dist = {t: float(distancia_sma(df)) for t, df in dados.items()}
 
     ranking = sorted(((t, m) for t, m in momentum.items() if m > 0), key=lambda x: -x[1])
     ultimo_pregao = max(df.index[-1] for df in dados.values())
@@ -55,9 +56,13 @@ def gerar_sinal(dados, benchmark_df=None, agora=None):
     return {
         "data": ultimo_pregao.strftime("%Y-%m-%d"),
         "gerado_em": agora.isoformat(timespec="seconds"),
+        "versao": "v26",
         "parametros": {
             "top_n": config.TOP_N, "stop_pct": config.STOP_PCT, "lookback": config.LOOKBACK,
             "exclude_last": config.EXCLUDE_LAST, "max_por_setor": config.MAX_POR_SETOR,
+            "timing_limit": config.TIMING_LIMIT, "ponto_de_compra": config.PONTO_DE_COMPRA,
+            "cash_buffer": config.CASH_BUFFER, "tolerancia_colchao": config.TOLERANCIA_COLCHAO,
+            "limite_setor": config.LIMITE_CONCENTRACAO_SETOR,
         },
         "top": [
             {
@@ -69,6 +74,8 @@ def gerar_sinal(dados, benchmark_df=None, agora=None):
                 "momentum": round(float(momentum[t]), 4),
                 "preco": round(float(dados[t]["Close"].iloc[-1]), 2),
                 "stop": round(float(calcular_stop(dados[t]["Close"].iloc[-1])), 2),
+                "dist_sma": round(dist[t], 4),
+                "ponto_de_compra": dist[t] <= config.PONTO_DE_COMPRA,
                 "serie": _serie(dados[t], DIAS_GRAFICO),
             }
             for i, t in enumerate(top, start=1)
@@ -76,7 +83,8 @@ def gerar_sinal(dados, benchmark_df=None, agora=None):
         # os 15 primeiros do ranking, para o "Ver detalhes do dia"
         "ranking": [
             {"ticker": sem_sufixo(t), "momentum": round(float(m), 4), "selecionada": t in top,
-             "setor": get_setor(t), "escassez": is_escassez(t)}
+             "setor": get_setor(t), "escassez": is_escassez(t),
+             "esticada": dist[t] > config.TIMING_LIMIT}
             for t, m in ranking[:15]
         ],
         "comparativo": montar_comparativo(dados, top, benchmark_df),
@@ -90,3 +98,12 @@ def gerar_sinal(dados, benchmark_df=None, agora=None):
         },
         "acoes_analisadas": len(dados),
     }
+
+
+def linhas_de_precos(dados, dias=config.DIAS_PRECOS_BANCO):
+    """Fechamentos recentes de todas as ações, para o stop móvel no app."""
+    return [
+        {"ticker": sem_sufixo(t), "data": i.strftime("%Y-%m-%d"), "fechamento": round(float(v), 4)}
+        for t, df in dados.items()
+        for i, v in df["Close"].iloc[-dias:].items()
+    ]

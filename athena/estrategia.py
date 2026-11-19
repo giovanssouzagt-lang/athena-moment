@@ -1,12 +1,13 @@
 """
-Regras da estratégia Athena. Mesma lógica do athena_final.py validado:
-os testes em tests/test_equivalencia.py comparam as duas versões.
+Regras da estratégia Athena v26. Mesma lógica do athena_app.py v26:
+os testes em tests/test_equivalencia.py comparam as versões.
 
 1. Momentum = retorno de 252 pregões atrás até 21 pregões atrás.
 2. Só entram ações com momentum positivo, ordenadas do maior para o menor.
 3. Ações de escassez que estão no top 10 sobem para o começo da fila.
-4. O top 5 é montado pulando empresas repetidas e setores que já têm 2 ações.
-5. Stop loss = preço atual × (1 − 22%).
+4. O top 5 é montado pulando empresas repetidas, setores que já têm 2 ações
+   e ações "esticadas" (mais de 8% acima da média de 50 dias).
+5. Stop inicial = preço atual × (1 − 10%); depois ele sobe junto com o topo.
 """
 import pandas as pd
 
@@ -27,9 +28,20 @@ def calcular_momentum(dados, lookback=config.LOOKBACK, exclude_last=config.EXCLU
     return mom
 
 
-def selecionar_top(momentum, top_n=config.TOP_N, max_por_setor=config.MAX_POR_SETOR,
-                   use_dedup=config.USE_DEDUP, top_escassez=config.TOP_ESCASSEZ):
-    """Aplica as regras de seleção e devolve a lista de tickers, em ordem."""
+def distancia_sma(df, dias=config.SMA_DIAS):
+    """Quanto o último fechamento está acima (+) ou abaixo (−) da média de N dias."""
+    sma = df["Close"].rolling(dias).mean()
+    return df["Close"].iloc[-1] / sma.iloc[-1] - 1
+
+
+def selecionar_top(momentum, dados=None, top_n=config.TOP_N, max_por_setor=config.MAX_POR_SETOR,
+                   use_dedup=config.USE_DEDUP, top_escassez=config.TOP_ESCASSEZ,
+                   timing_limit=config.TIMING_LIMIT):
+    """
+    Aplica as regras de seleção e devolve a lista de tickers, em ordem.
+    Com `dados` e `timing_limit`, pula as ações esticadas (v26).
+    Com timing_limit=None, é a seleção sem timing (athena_final.py).
+    """
     candidatos = {t: v for t, v in momentum.items() if v > 0}
     # sorted é estável: em caso de empate vale a ordem original, como no script validado
     ranking = sorted(candidatos.items(), key=lambda x: -x[1])
@@ -48,6 +60,10 @@ def selecionar_top(momentum, top_n=config.TOP_N, max_por_setor=config.MAX_POR_SE
         setor = get_setor(ticker)
         if por_setor.get(setor, 0) >= max_por_setor:
             continue
+        if timing_limit is not None and dados is not None and ticker in dados:
+            dist = distancia_sma(dados[ticker])
+            if pd.notna(dist) and dist > timing_limit:
+                continue  # esticada: espera o respiro, a próxima entra no lugar
         por_setor[setor] = por_setor.get(setor, 0) + 1
         selecionados.append(ticker)
         if use_dedup:

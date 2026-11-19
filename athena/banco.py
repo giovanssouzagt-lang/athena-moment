@@ -41,7 +41,7 @@ def _upsert(url, chave, tabela, linhas):
         raise RuntimeError(f"Supabase recusou o envio para '{tabela}': {resposta.status_code} {resposta.text}")
 
 
-def enviar_sinal(sinal):
+def enviar_sinal(sinal, precos=None):
     _carregar_env()
     url = os.environ.get("SUPABASE_URL", "").rstrip("/")
     chave = os.environ.get("SUPABASE_SERVICE_KEY", "")
@@ -57,4 +57,9 @@ def enviar_sinal(sinal):
     _upsert(url, chave, "sinais", [
         {"data": sinal["data"], "tickers": [a["ticker"] for a in sinal["top"]], "conteudo": sinal}
     ])
-    print(f"\nSinal de {sinal['data']} enviado ao Supabase.")
+    if precos:
+        # em blocos, para não mandar ~19 mil linhas de uma vez
+        for i in range(0, len(precos), 2000):
+            _upsert(url, chave, "precos", precos[i:i + 2000])
+    print(f"\nSinal de {sinal['data']} enviado ao Supabase"
+          + (f" (+ {len(precos)} fechamentos para o stop móvel)." if precos else "."))

@@ -1,12 +1,18 @@
 {
  "data": "2026-11-17",
- "gerado_em": "2026-11-19T05:15:52+00:00",
+ "gerado_em": "2026-11-19T06:43:04+00:00",
+ "versao": "v26",
  "parametros": {
   "top_n": 5,
-  "stop_pct": 0.22,
+  "stop_pct": 0.1,
   "lookback": 252,
   "exclude_last": 21,
-  "max_por_setor": 2
+  "max_por_setor": 2,
+  "timing_limit": 0.08,
+  "ponto_de_compra": 0.03,
+  "cash_buffer": 0.4,
+  "tolerancia_colchao": 0.15,
+  "limite_setor": 0.4
  },
  "top": [
   {
@@ -17,7 +23,9 @@
    "escassez": true,
    "momentum": 0.9838,
    "preco": 50.23,
-   "stop": 39.18,
+   "stop": 45.21,
+   "dist_sma": -0.1148,
+   "ponto_de_compra": true,
    "serie": [
     {
      "d": "2026-05-20",
@@ -533,7 +541,9 @@
    "escassez": true,
    "momentum": 0.8303,
    "preco": 32.09,
-   "stop": 25.03,
+   "stop": 28.88,
+   "dist_sma": -0.1199,
+   "ponto_de_compra": true,
    "serie": [
     {
      "d": "2026-05-20",
@@ -1049,7 +1059,9 @@
    "escassez": true,
    "momentum": 0.7115,
    "preco": 55.58,
-   "stop": 43.35,
+   "stop": 50.02,
+   "dist_sma": -0.0187,
+   "ponto_de_compra": true,
    "serie": [
     {
      "d": "2026-05-20",
@@ -1565,7 +1577,9 @@
    "escassez": true,
    "momentum": 0.6278,
    "preco": 26.69,
-   "stop": 20.82,
+   "stop": 24.02,
+   "dist_sma": -0.0554,
+   "ponto_de_compra": true,
    "serie": [
     {
      "d": "2026-05-20",
@@ -2081,7 +2095,9 @@
    "escassez": false,
    "momentum": 0.8844,
    "preco": 20.92,
-   "stop": 16.32,
+   "stop": 18.83,
+   "dist_sma": -0.0884,
+   "ponto_de_compra": true,
    "serie": [
     {
      "d": "2026-05-20",
@@ -2596,105 +2612,120 @@
    "momentum": 0.9838,
    "selecionada": true,
    "setor": "Petroleo",
-   "escassez": true
+   "escassez": true,
+   "esticada": false
   },
   {
    "ticker": "PETR4",
    "momentum": 0.9167,
    "selecionada": false,
    "setor": "Petroleo",
-   "escassez": true
+   "escassez": true,
+   "esticada": false
   },
   {
    "ticker": "FLRY3",
    "momentum": 0.8844,
    "selecionada": true,
    "setor": "Saude",
-   "escassez": false
+   "escassez": false,
+   "esticada": false
   },
   {
    "ticker": "UGPA3",
    "momentum": 0.8303,
    "selecionada": true,
    "setor": "Petroleo",
-   "escassez": true
+   "escassez": true,
+   "esticada": false
   },
   {
    "ticker": "B3SA3",
    "momentum": 0.7641,
    "selecionada": false,
    "setor": "Financeiro",
-   "escassez": false
+   "escassez": false,
+   "esticada": false
   },
   {
    "ticker": "PRIO3",
    "momentum": 0.7618,
    "selecionada": false,
    "setor": "Petroleo",
-   "escassez": true
+   "escassez": true,
+   "esticada": false
   },
   {
    "ticker": "CSMG3",
    "momentum": 0.7115,
    "selecionada": true,
    "setor": "Saneamento",
-   "escassez": true
+   "escassez": true,
+   "esticada": false
   },
   {
    "ticker": "VAMO3",
    "momentum": 0.6981,
    "selecionada": false,
    "setor": "Logistica",
-   "escassez": false
+   "escassez": false,
+   "esticada": false
   },
   {
    "ticker": "ENEV3",
    "momentum": 0.6278,
    "selecionada": true,
    "setor": "Energia",
-   "escassez": true
+   "escassez": true,
+   "esticada": false
   },
   {
    "ticker": "VBBR3",
    "momentum": 0.6263,
    "selecionada": false,
    "setor": "Petroleo",
-   "escassez": true
+   "escassez": true,
+   "esticada": false
   },
   {
    "ticker": "BPAC11",
    "momentum": 0.5348,
    "selecionada": false,
    "setor": "Financeiro",
-   "escassez": false
+   "escassez": false,
+   "esticada": false
   },
   {
    "ticker": "ALOS3",
    "momentum": 0.4558,
    "selecionada": false,
    "setor": "Shopping",
-   "escassez": false
+   "escassez": false,
+   "esticada": false
   },
   {
    "ticker": "GOAU4",
    "momentum": 0.4524,
    "selecionada": false,
    "setor": "Mineracao",
-   "escassez": true
+   "escassez": true,
+   "esticada": false
   },
   {
    "ticker": "CXSE3",
    "momentum": 0.4432,
    "selecionada": false,
    "setor": "Financeiro",
-   "escassez": false
+   "escassez": false,
+   "esticada": false
   },
   {
    "ticker": "BRAV3",
    "momentum": 0.4239,
    "selecionada": false,
    "setor": "Petroleo",
-   "escassez": true
+   "escassez": true,
+   "esticada": false
   }
  ],
  "comparativo": {

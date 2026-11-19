@@ -1,0 +1,52 @@
+# Publica o app no GitHub Pages sempre que algo muda na pasta web/.
+name: Publicar app
+
+on:
+  push:
+    branches: [main]
+    paths: ["web/**", ".github/workflows/publicar-app.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    defaults:
+      run:
+        working-directory: web
+    env:
+      BASE_PATH: /athena-moment/
+      # Endereço e chave PÚBLICA do Supabase (feita para ficar no navegador).
+      # Os dados são protegidos pelas regras de segurança (RLS) do banco.
+      VITE_SUPABASE_URL: https://ocowyxkktyyjhmseelzc.supabase.co
+      VITE_SUPABASE_ANON_KEY: sb_publishable_fK7XIf2bN92IuF-u-AQSTQ_i2eu0Tjw
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: web/dist
+
+      - id: deploy
+        uses: actions/deploy-pages@v4

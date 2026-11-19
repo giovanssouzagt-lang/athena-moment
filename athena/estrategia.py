@@ -1,0 +1,59 @@
+"""
+Regras da estratégia Athena. Mesma lógica do athena_final.py validado:
+os testes em tests/test_equivalencia.py comparam as duas versões.
+
+1. Momentum = retorno de 252 pregões atrás até 21 pregões atrás.
+2. Só entram ações com momentum positivo, ordenadas do maior para o menor.
+3. Ações de escassez que estão no top 10 sobem para o começo da fila.
+4. O top 5 é montado pulando empresas repetidas e setores que já têm 2 ações.
+5. Stop loss = preço atual × (1 − 22%).
+"""
+import pandas as pd
+
+from . import config
+from .universo import get_empresa, get_setor, is_escassez
+
+
+def calcular_momentum(dados, lookback=config.LOOKBACK, exclude_last=config.EXCLUDE_LAST):
+    """dados: {ticker: DataFrame com coluna Close}. Retorna {ticker: momentum}."""
+    mom = {}
+    for t, df in dados.items():
+        if len(df) < lookback + exclude_last:
+            continue
+        p0 = df["Close"].iloc[-lookback]
+        p1 = df["Close"].iloc[-exclude_last]
+        if pd.notna(p0) and pd.notna(p1) and p0 > 0:
+            mom[t] = p1 / p0 - 1
+    return mom
+
+
+def selecionar_top(momentum, top_n=config.TOP_N, max_por_setor=config.MAX_POR_SETOR,
+                   use_dedup=config.USE_DEDUP, top_escassez=config.TOP_ESCASSEZ):
+    """Aplica as regras de seleção e devolve a lista de tickers, em ordem."""
+    candidatos = {t: v for t, v in momentum.items() if v > 0}
+    # sorted é estável: em caso de empate vale a ordem original, como no script validado
+    ranking = sorted(candidatos.items(), key=lambda x: -x[1])
+
+    topo = ranking[:top_escassez]
+    escassez_no_topo = [x for x in topo if is_escassez(x[0])]
+    demais_no_topo = [x for x in topo if not is_escassez(x[0])]
+    ranking = escassez_no_topo + demais_no_topo + ranking[top_escassez:]
+
+    selecionados, por_setor, empresas = [], {}, set()
+    for ticker, _ in ranking:
+        if len(selecionados) >= top_n:
+            break
+        if use_dedup and get_empresa(ticker) in empresas:
+            continue
+        setor = get_setor(ticker)
+        if por_setor.get(setor, 0) >= max_por_setor:
+            continue
+        por_setor[setor] = por_setor.get(setor, 0) + 1
+        selecionados.append(ticker)
+        if use_dedup:
+            empresas.add(get_empresa(ticker))
+    return selecionados
+
+
+def calcular_stop(preco, stop_pct=config.STOP_PCT):
+    return preco * (1 - stop_pct)

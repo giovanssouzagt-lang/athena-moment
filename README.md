@@ -79,6 +79,12 @@ O Athena não compra nada sozinho: ele é a "cola" do investidor. As compras e v
 - **Top 5:** selo de "ponto de compra" ou "respiro", gráfico de 6 meses e comparativo com o BOVA11
 - **Histórico:** o Top 5 de cada dia e o ranking completo, incluindo as ações puladas por estarem esticadas
 
+## Quando os dados atualizam
+
+O Athena usa o **preço de fechamento** de cada pregão, não cotações em tempo real, porque a estratégia foi testada assim e preços do meio do dia gerariam alarmes falsos de stop. O robô roda **uma vez por dia útil, às 18h30**: o sinal de um dia serve para operar no pregão seguinte, e o app não muda durante o pregão.
+
+A data no topo do app é a do **último fechamento usado**. Feriados, fins de semana e atrasos da fonte de dados (Yahoo Finance) estão explicados, com um exemplo real, em **[Quando os dados do Athena são atualizados](docs/quando-os-dados-atualizam.md)**.
+
 ## Rodar localmente
 
 ```bash

@@ -6,9 +6,9 @@ Todo dia útil, depois do fechamento, um robô analisa 75 ações do Ibovespa, e
 **📱 Abrir o app:** [giovanssouzagt-lang.github.io/athena-moment](https://giovanssouzagt-lang.github.io/athena-moment/) (instalável no celular como aplicativo)
 
 <p align="center">
-  <img src="docs/top5.png" alt="Top 5 do dia com preço, stop loss, força de 12 meses e gráfico de 6 meses" width="24%">
-  <img src="docs/carteira.png" alt="Carteira com lucro, prejuízo e alertas explicativos" width="24%">
-  <img src="docs/historico.png" alt="Detalhes de um dia do histórico de sinais" width="24%">
+  <img src="docs/inicio.png" alt="Simulador: quanto investir hoje, com quantas ações comprar de cada uma e o stop de cada posição" width="24%">
+  <img src="docs/top5.png" alt="Top 5 do dia com preço, stop móvel, força de 12 meses e gráfico de 6 meses" width="24%">
+  <img src="docs/colchao.png" alt="Colchão CDI: 60% em ações e 40% no CDI" width="24%">
   <img src="docs/comparativo.png" alt="Comparativo do Top 5 contra o BOVA11 em 12 meses" width="24%">
 </p>
 

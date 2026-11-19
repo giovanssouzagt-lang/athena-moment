@@ -6,3 +6,4 @@ saida/
 node_modules/
 dist/
 .pytest_cache/
+RESUMO.md

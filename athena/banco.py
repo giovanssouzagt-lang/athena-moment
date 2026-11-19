@@ -41,6 +41,45 @@ def _upsert(url, chave, tabela, linhas):
         raise RuntimeError(f"Supabase recusou o envio para '{tabela}': {resposta.status_code} {resposta.text}")
 
 
+def _credenciais():
+    _carregar_env()
+    url = os.environ.get("SUPABASE_URL", "").rstrip("/")
+    chave = os.environ.get("SUPABASE_SERVICE_KEY", "")
+    return (url, chave) if url and chave else (None, None)
+
+
+def _ler(tabela, consulta):
+    url, chave = _credenciais()
+    if not url:
+        return []
+    r = requests.get(f"{url}/rest/v1/{tabela}?{consulta}",
+                     headers={"apikey": chave, "Authorization": f"Bearer {chave}"}, timeout=60)
+    if r.status_code >= 300:
+        raise RuntimeError(f"Supabase recusou a leitura de '{tabela}': {r.status_code} {r.text}")
+    return r.json()
+
+
+def tickers_em_carteiras():
+    """Ações anotadas em alguma carteira (só os códigos), para buscar notícias delas."""
+    return sorted({linha["ticker"] for linha in _ler("aportes", "select=ticker")})
+
+
+def sinais_desde(data):
+    return [l["conteudo"] for l in _ler("sinais", f"select=conteudo&data=gte.{data}&order=data.asc")]
+
+
+def ia_conteudo_desde(tipo, data):
+    return [l["conteudo"] for l in _ler("ia_conteudo", f"select=conteudo&tipo=eq.{tipo}&data=gte.{data}&order=data.asc")]
+
+
+def enviar_ia(tipo, data, conteudo):
+    url, chave = _credenciais()
+    if not url:
+        return
+    _upsert(url, chave, "ia_conteudo", [{"data": data, "tipo": tipo, "conteudo": conteudo}])
+    print(f"Conteúdo de IA '{tipo}' de {data} enviado ao Supabase.")
+
+
 def enviar_sinal(sinal, precos=None):
     _carregar_env()
     url = os.environ.get("SUPABASE_URL", "").rstrip("/")

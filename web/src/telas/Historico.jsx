@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { listarHistorico, obterSinal } from '../dados/index.js';
 import { nomeSetor, pct } from '../carteira.js';
 import { CartaoAcao } from './Top5.jsx';
+import { Relatorios } from './Relatorios.jsx';
 
 export const dataBR = (d) => d.split('-').reverse().join('/');
 
@@ -32,6 +33,8 @@ export function Historico() {
         <h2>Histórico de sinais</h2>
         <p>O que o Athena recomendou em cada dia.</p>
       </div>
+
+      <Relatorios />
 
       <ul className="lista-historico">
         {dias.map((d) => (

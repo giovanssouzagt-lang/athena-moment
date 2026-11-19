@@ -15,6 +15,7 @@ import yfinance as yf
 
 from athena import config
 from athena.dados import baixar_precos
+from athena.ia import analisar_noticias
 from athena.sinal import gerar_sinal, linhas_de_precos
 from athena.universo import TICKERS, sem_sufixo
 
@@ -59,11 +60,22 @@ def main():
     if c:
         print(f"\n12 meses: Top 5 {c['retorno_top5']:+.1%} | BOVA11 {c['retorno_bova']:+.1%}")
 
+    from athena.banco import enviar_ia, enviar_sinal, tickers_em_carteiras
+    enviar_sinal(sinal, linhas_de_precos(dados))
+
+    # Athena Inteligente: notícias do Top 5 e das ações anotadas nas carteiras.
+    # É um complemento: se falhar, o sinal do dia já foi salvo e o robô termina bem.
+    print("\nAnalisando notícias com a IA...")
     try:
-        from athena.banco import enviar_sinal  # noqa: E402
-        enviar_sinal(sinal, linhas_de_precos(dados))
-    except ImportError:
-        pass
+        tickers = list(dict.fromkeys([a["ticker"] for a in sinal["top"]] + tickers_em_carteiras()))
+        analise = analisar_noticias(tickers, sinal["data"])
+        if analise:
+            for t, a in analise["acoes"].items():
+                if a["risco"] != "nenhum":
+                    print(f"  {t}: risco {a['risco']} - {a['motivo']}")
+            enviar_ia("noticias", sinal["data"], analise)
+    except Exception as erro:
+        print(f"  aviso: análise de notícias falhou ({erro}); o sinal do dia foi salvo normalmente.")
 
 
 if __name__ == "__main__":

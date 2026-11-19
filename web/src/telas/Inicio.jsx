@@ -4,7 +4,7 @@ import { gerarAlertas, pct, reais } from '../carteira.js';
 import { planoAporte } from '../simulador.js';
 import { regrasDoSinal, useCarteira } from '../useCarteira.js';
 
-const ICONE = { venda: '🔴', atencao: '⚠️', compra: '🟢', ok: '✅' };
+const ICONE = { venda: '🔴', atencao: '⚠️', compra: '🟢', ok: '✅', noticia: '📰' };
 const hoje = () => new Date().toISOString().slice(0, 10);
 
 function Simulador({ sinal, caixa, aoAnotar }) {
@@ -80,9 +80,19 @@ function Simulador({ sinal, caixa, aoAnotar }) {
   );
 }
 
-export function Inicio({ sinal }) {
+function alertasDeNoticias(noticias, tickers) {
+  if (!noticias?.acoes) return [];
+  return tickers
+    .filter((t) => ['alto', 'atencao'].includes(noticias.acoes[t]?.risco))
+    .sort((a, b) => (noticias.acoes[a].risco === 'alto' ? -1 : 1) - (noticias.acoes[b].risco === 'alto' ? -1 : 1))
+    .map((t) => ({ tipo: 'noticia', texto: `${noticias.acoes[t].risco === 'alto' ? 'Notícia de risco' : 'Notícia para acompanhar'} em ${t}: ${noticias.acoes[t].motivo} Veja o resumo e as fontes na aba Top 5.` }));
+}
+
+export function Inicio({ sinal, noticias }) {
   const c = useCarteira(sinal);
   const alertas = c.carregando || c.erro ? [] : gerarAlertas(c.posicoes, sinal.top, regrasDoSinal(sinal), c.caixa?.valor ?? null);
+  const tickers = [...new Set([...c.posicoes.map((p) => p.ticker), ...sinal.top.map((a) => a.ticker)])];
+  const noticiasRisco = c.carregando ? [] : alertasDeNoticias(noticias, tickers);
 
   return (
     <section>
@@ -94,7 +104,7 @@ export function Inicio({ sinal }) {
       {!c.carregando && !c.erro && !c.posicoes.length && (
         <p className="aviso aviso-ok">✅ Sua carteira ainda está vazia. Use o simulador acima para montar a primeira, ou anote compras que você já tem na aba Carteira.</p>
       )}
-      {c.posicoes.length > 0 && alertas.map((a, i) => (
+      {[...noticiasRisco, ...(c.posicoes.length > 0 ? alertas : [])].map((a, i) => (
         <p key={i} className={`aviso aviso-${a.tipo}`}><span aria-hidden>{ICONE[a.tipo]}</span> {a.texto}</p>
       ))}
     </section>

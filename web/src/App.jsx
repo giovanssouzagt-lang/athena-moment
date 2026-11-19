@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { aoMudarSessao, modoDemo, obterSinalAtual, sair, sessaoAtual } from './dados/index.js';
+import { aoMudarSessao, modoDemo, obterNoticias, obterSinalAtual, sair, sessaoAtual } from './dados/index.js';
 import { IconeCarteira, IconeColchao, IconeHistorico, IconeInicio, IconeSair, IconeTop } from './componentes/Icones.jsx';
 import { Top5 } from './telas/Top5.jsx';
 import { Historico, dataBR } from './telas/Historico.jsx';
@@ -7,6 +7,7 @@ import { Carteira } from './telas/Carteira.jsx';
 import { Inicio } from './telas/Inicio.jsx';
 import { Colchao } from './telas/Colchao.jsx';
 import { Login } from './telas/Login.jsx';
+import { Chat } from './telas/Chat.jsx';
 
 const ABAS = [
   { id: 'inicio', nome: 'Início', Icone: IconeInicio },
@@ -19,6 +20,7 @@ const ABAS = [
 export function App() {
   const [usuario, setUsuario] = useState(undefined); // undefined = verificando
   const [sinal, setSinal] = useState(null);
+  const [noticias, setNoticias] = useState(null);
   const [erro, setErro] = useState('');
   const [aba, setAba] = useState('inicio');
 
@@ -28,7 +30,9 @@ export function App() {
   }, []);
 
   useEffect(() => {
-    if (usuario) obterSinalAtual().then(setSinal).catch((e) => setErro(e.message));
+    if (!usuario) return;
+    obterSinalAtual().then(setSinal).catch((e) => setErro(e.message));
+    obterNoticias().then(setNoticias).catch(() => setNoticias(null)); // complemento: sem notícias o app funciona igual
   }, [usuario]);
 
   if (usuario === undefined) return <p className="carregando tela-cheia">Abrindo o Athena…</p>;
@@ -57,8 +61,8 @@ export function App() {
       <main className="conteudo">
         {erro && <p className="aviso aviso-venda">{erro}</p>}
         {!sinal && !erro && <p className="carregando">Buscando o sinal de hoje…</p>}
-        {sinal && aba === 'inicio' && <Inicio sinal={sinal} />}
-        {sinal && aba === 'top' && <Top5 sinal={sinal} />}
+        {sinal && aba === 'inicio' && <Inicio sinal={sinal} noticias={noticias} />}
+        {sinal && aba === 'top' && <Top5 sinal={sinal} noticias={noticias} />}
         {sinal && aba === 'carteira' && <Carteira sinal={sinal} />}
         {sinal && aba === 'colchao' && <Colchao sinal={sinal} />}
         {sinal && aba === 'historico' && <Historico />}
@@ -66,6 +70,8 @@ export function App() {
           Ferramenta de triagem, não é recomendação de investimento. Resultados passados não garantem resultados futuros. A decisão final é sempre sua.
         </footer>
       </main>
+
+      {sinal && <Chat />}
 
       <nav className="menu-inferior" aria-label="Seções">
         {ABAS.map(({ id, nome, Icone }) => (

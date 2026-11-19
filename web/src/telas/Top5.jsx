@@ -2,8 +2,9 @@ import { useState } from 'react';
 import { Grafico } from '../componentes/Grafico.jsx';
 import { nomeSetor, pct, reais } from '../carteira.js';
 import { Comparativo } from './Comparativo.jsx';
+import { NoticiaAcao } from '../componentes/Noticia.jsx';
 
-export function CartaoAcao({ acao }) {
+export function CartaoAcao({ acao, noticia }) {
   const serie = acao.serie.map((p) => p.c);
   const variacao6m = serie.length ? serie[serie.length - 1] / serie[0] - 1 : 0;
   return (
@@ -40,6 +41,8 @@ export function CartaoAcao({ acao }) {
         </p>
       )}
 
+      {noticia && <NoticiaAcao noticia={noticia} />}
+
       <div className="cartao-grafico">
         <Grafico compacto altura={70} series={[{ nome: `${acao.ticker} 6 meses`, valores: serie, cor: '#d4af37' }]} />
         <span className={variacao6m >= 0 ? 'texto-verde' : 'texto-vermelho'}>
@@ -50,7 +53,7 @@ export function CartaoAcao({ acao }) {
   );
 }
 
-export function Top5({ sinal }) {
+export function Top5({ sinal, noticias }) {
   const [explicar, setExplicar] = useState(false);
   const p = sinal.parametros;
   return (
@@ -60,7 +63,7 @@ export function Top5({ sinal }) {
         <p>As ações mais fortes da B3 segundo a estratégia Athena.</p>
       </div>
 
-      {sinal.top.map((a) => <CartaoAcao key={a.ticker} acao={a} />)}
+      {sinal.top.map((a) => <CartaoAcao key={a.ticker} acao={a} noticia={noticias?.acoes?.[a.ticker]} />)}
 
       <button className="botao-secundario largo" onClick={() => setExplicar(!explicar)}>
         {explicar ? 'Esconder explicação' : 'Como o Top 5 é escolhido?'}
